@@ -1,4 +1,4 @@
-# Magic Square of Square
+# Magic Square of Squares
 Algorithm to search magic squares of squares
 
 ## History
