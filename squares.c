@@ -48,7 +48,6 @@ int main(){
 					couples ++; // add one couple
 					saved[i] = square;
 					i ++;
-					temp = square;
 				}
 				else if(count >= 3){
 					trios[triples*3+2] = square*square;
