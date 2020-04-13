@@ -20,7 +20,7 @@ With both of them installed, you can use:
 ```
 make docker   # create image
 make          # create executable inside docker container
-run           # run the executable inside the container
+make run           # run the executable inside the container
 ```
 You can also run the following command to open the bash inside the container:
 ```
