@@ -23,8 +23,8 @@ int main(){
 	double start, increment, square;
 	vector<double> saved;
 	double temp;
-  short j, k, c, len, z;
-	short couples, triples, count;
+  short j, k, c, z;
+	short triples, count;
 	double distance;
 	bool detected = false;
 	int r;
@@ -41,7 +41,6 @@ int main(){
 		}
 
 		saved.clear();
-		couples = 0;	// number of couples
 		triples = 0;	// number of triples
 		count = 0;
 		start = 1.0;	// starting number
@@ -55,17 +54,18 @@ int main(){
 				count ++;
 				start += increment;
 				if (count == 2){
-					couples ++; // add one couple
 					saved.push_back(square);
 				}
-				else if(count >= 3){
+				else if(count == 3){
 					trios[triples*3+2] = square*square;
 					trios[triples*3+1] = trios[triples*3+2] - increment;
 					trios[triples*3] = trios[triples*3+1] - increment;
 					saved.pop_back();
 					temp = square;
-					couples --; // remove one couple
 					triples ++; // add one triple
+				}
+				else {
+					cout << "Four in a row!" << endl;
 				}
 			}
 			else{
@@ -75,47 +75,46 @@ int main(){
 				start = square * square;
 			}
 		}
-		if ((triples==1 && couples>=2)||(triples>=2)){
 
-			int numSaved = (int)saved.size();
+		// Analysis
+
+		int numCouples = (int)saved.size();
+
+		if ((triples==1 && numCouples>=2)||(triples>=2)){
 
 			if (triples == 1){
 
 				// compute distance from triples end point
-				len = 0;
-				double distances[triples*numSaved*2];
-				for (c = 0; c < numSaved; c ++){
-					for (j = 0; j < triples*3; j+=3){
-						distances[len] = saved[c] * saved[c] - trios[j+2];
-						distances[len + 1] = distances[len] - increment;
-						if (distances[len] < 0) distances[len] *= (-1);
-						if (distances[len+1]< 0) distances[len+1] *= (-1);
-						len += 2;
-
-					}
+				double distances[numCouples];
+				for (c = 0; c < numCouples; c ++){
+						distances[c] = saved[c] * saved[c] - trios[2];
+						if (distances[c] < 0) distances[c] *= (-1);
 				}
 
 				// check if any two distances is duplicate
-				for (k = 1; k < numSaved; k ++){
+				for (k = 1; k < numCouples; k ++){
 					for (j = 0; j < k; j ++){
 						distance = saved[k]*saved[k] - saved[j]*saved[j];
-						for (c = 0; c < len; c ++){
-							if (distance == distances[c]) detected = true;
-							else if(distance - increment == distances[c]) detected = true;
-							else if(distance + increment == distances[c]) detected = true;
-							if (detected) {
-								// print detected elements
-								print_info(increment, saved[k], saved[j]);
-								cout << "Triples: ";
-								for (z = 0; z < triples; z ++){
-									cout << trios[z*3] << " ";
-									cout << trios[z*3+1] << " ";
-									cout << trios[z*3+2] << endl;
-								}
-								cout << endl;
-								cout << "Distance: " << distances[c] << endl;
-								detected = false;
+
+						if (distance == distances[k]) detected = true;
+						else if(distance - increment == distances[k]) detected = true;
+						else if(distance + increment == distances[k]) detected = true;
+
+						if (distance == distances[j]) detected = true;
+						else if(distance - increment == distances[j]) detected = true;
+						else if(distance + increment == distances[j]) detected = true;
+
+						if (detected) {
+							// print detected elements
+							print_info(increment, saved[j], saved[k]);
+							cout << "Triples: ";
+							for (z = 0; z < triples; z ++){
+								cout << trios[z*3] << " ";
+								cout << trios[z*3+1] << " ";
+								cout << trios[z*3+2] << endl;
 							}
+							cout << "Distance: " << distance << endl << endl;
+							detected = false;
 						}
 					}
 				}
@@ -135,7 +134,7 @@ int main(){
 								if (trios[c*3 + k] - distance == square * square){
 									cout << "Increment: " << increment << endl;
 									// print detected elements
-									for (c = 0; c < numSaved; c++){
+									for (c = 0; c < numCouples; c++){
 										cout << saved[c] << " ";
 									}
 									cout << endl;
@@ -151,7 +150,7 @@ int main(){
 							if (trios[j*3 + k] + distance == square * square){
 								cout << "Increment: " << increment << endl;
 								// print detected elements
-								for (c = 0; c < numSaved; c++){
+								for (c = 0; c < numCouples; c++){
 									cout << saved[c] << " ";
 								}
 								cout << endl;
