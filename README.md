@@ -12,4 +12,21 @@ To be composed in a magic square, we compare the distance of the last element of
 We check then for these conditions and if one is qualified with such condition we print *** to screen near the number.
 
 ## Running the program
-You are free to run the program and try yourself to be the first one to find the square. If you use the code and find such magic square, you can keep the win but please refer me as contributor! Thanks.
+To run the program you should have docker installed, as the programs runs in an image. No other installation is required.
+To run the program more easily also having `make` is preferrable.
+
+With both of them installed, you can use:
+
+```
+make docker   # create image
+make          # create executable inside docker container
+run           # run the executable inside the container
+```
+You can also run the following command to open the bash inside the container:
+```
+make exec
+```
+
+Otherwise, you can use simply docker in the more traditional way using the Dockerfile provided, or just compile the `squares.cpp` file on your machine and executing it.
+
+If you use the code and find such magic square, you can keep the win but please refer me as contributor! Thanks.
