@@ -16,7 +16,7 @@ run:
 	./squares
 
 exec:
-	docker run --rm \
+	docker run -it --rm \
 	-v ${CURDIR}:/w \
 	-w /w \
-	magic-squares:latest \
+	magic-squares:latest
