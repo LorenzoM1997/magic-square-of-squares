@@ -1,2 +1,2 @@
 make:
-	g++ -Wall -Werror squares.c -o squares
+	g++ -Wall -Werror squares.cpp -o squares
