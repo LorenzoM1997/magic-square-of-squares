@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <cstdint>
 #include <thread>
 #include <mutex>
 using namespace std;
@@ -13,164 +14,281 @@ using namespace std;
 int assignment;
 mutex mut;
 
-// given a point n, get next valid point greater than n
-int increase(int n){
-	// numbers ending in 2,3,7,8 can't lead to a group of 3 squares
-	int r = n % 10;
-	if (r == 1 || r == 6 ) {
-		n += 3;
+namespace
+{
+	uint64_t initialize_square_root(const int increment)
+	{
+		if (increment % 5 == 1)
+		{
+			return 2;
+		}
+		else
+		{
+			return 1;
+		}
 	}
-	else {
-		n += 1;
+
+	void increase_square_root(uint64_t &square_root, const int increment)
+	{
+		char d = increment % 5;
+		if (d == 0)
+		{
+			square_root++;
+		}
+		else
+		{
+			char r = square_root % 5;
+			if (d == 1)
+			{
+
+				if (r == 2)
+				{
+					square_root++;
+				}
+				else
+				{
+					square_root += 4;
+				}
+			}
+			else
+			{
+				if (r == 1)
+				{
+					square_root += 3;
+				}
+				else
+				{
+					square_root += 2;
+				}
+			}
+		}
 	}
-	return n;
+
+	// given a point n, get next valid point greater than n
+	void increase(int &n)
+	{
+		// numbers ending in 2,3,7,8 can't lead to a group of 3 squares
+		if (n % 5 == 1)
+		{
+			n += 3;
+		}
+		else
+		{
+			n += 1;
+		}
+	}
+
+	// -----------------------------------------------------------------------------
+	void print_info(uint64_t increment, uint64_t first, uint64_t second)
+	{
+		cout << "Increment: " << increment << endl;
+		cout << "Couples: ";
+
+		cout << "[" << sqrt((first * first) - increment) << "," << first << "]";
+		cout << "[" << sqrt((second * second) - increment) << "," << second << "]";
+		cout << endl;
+		return;
+	}
+
+	// -----------------------------------------------------------------------------
+	int get_increment()
+	{
+		int increment;
+		mut.lock();
+		increase(assignment);
+		increment = assignment;
+		mut.unlock();
+		return increment;
+	}
+
 }
 
-void print_info(double increment, double first, double second){
-	cout << "Increment: " << increment << endl;
-	cout << "Couples: ";
+// -----------------------------------------------------------------------------
+void Elaborate()
+{
 
-	cout << "[" << sqrt((first*first) - increment) << "," << first << "]";
-	cout << "[" << sqrt((second*second) - increment) << "," << second << "]";
-	cout << endl;
-	return;
-}
+	int increment = get_increment();
 
-void Elaborate(){
+	//std::cout << "Elaborate: " << increment << std::endl;
 
-	int increment;
-
-	mut.lock();
-	assignment = increase(assignment);
-	increment = assignment;
-	mut.unlock();
-
-	double start, square;
-	vector<double> saved;
-	double temp;
-  short j, k, c, z;
-	short triples, count;
-	double distance;
+	vector<uint64_t> saved;
+	short j, k, c, z;
+	uint64_t distance;
 	bool detected = false;
 
-	double trios[9];
+	vector<uint64_t> trios(9);
 
-	saved.clear();
-	triples = 0;	// number of triples
-	count = 0;
-	start = 1.0;	// starting number
-	square = 1.0;	// starting base
-	temp = square;	// temporary variable
+	int triples = 0; // number of triples
+	int count = 0;
+	uint64_t start = 1;									 // starting number
+	uint64_t square = initialize_square_root(increment); // starting base
+	uint64_t temp = square;								 // temporary variable
 
-	while (increment > 2*square + 1){
-		// raise the square to reach the number desired
-		while (start > square * square) square ++;
-		if (start == square * square){
-			count ++;
-			start += increment;
-			if (count == 2){
-				saved.push_back(square);
+	while ((uint64_t)increment > 2 * square + 1)
+	{
+		// get square root
+		square = sqrt(start);
+
+		// if start is a perfect square, count it up!
+		if (start == square * square)
+		{
+			count++;
+			if (count == 2)
+			{
+				// check if it's already in a triple
+				bool found_in_triple = false;
+				for (auto &&triple : trios)
+				{
+					if (start == triple)
+					{
+						found_in_triple = true;
+					}
+				}
+
+				// if it's not in the trios, then add it to the couple
+				if (!found_in_triple)
+				{
+					saved.push_back(square);
+				}
 			}
-			else if(count == 3){
-				trios[triples*3+2] = square*square;
-				trios[triples*3+1] = trios[triples*3+2] - increment;
-				trios[triples*3] = trios[triples*3+1] - increment;
+			else if (count == 3)
+			{
+				trios.at(triples * 3 + 2) = square * square;
+				trios.at(triples * 3 + 1) = trios.at(triples * 3 + 2) - increment;
+				trios.at(triples * 3) = trios.at(triples * 3 + 1) - increment;
 				saved.pop_back();
-				temp = square;
-				triples ++; // add one triple
+				triples++; // add one triple
 			}
-			else if (count >3){
+			else if (count > 3)
+			{
 				cout << "Four in a row!" << endl;
 			}
 		}
-		else{
-			count = 0;
-			temp ++;
-			square = temp;
-			start = square * square;
+		else
+		{
+			// get new start
+			increase_square_root(temp, increment);
+			start = (temp * temp);
+
+			// reset the counter to 1 (the current square start)
+			count = 1;
 		}
+
+		start += increment;
 	}
 
 	// Analysis
 
 	int numCouples = (int)saved.size();
 
-	if ((triples==1 && numCouples>=2)||(triples>=2)){
+	if ((triples == 1 && numCouples >= 2) || (triples >= 2))
+	{
 
-		if (triples == 1){
+		if (triples == 1)
+		{
 
 			// compute distance from triples end point
-			double distances[numCouples];
-			for (c = 0; c < numCouples; c ++){
-					distances[c] = saved[c] * saved[c] - trios[2];
-					if (distances[c] < 0) distances[c] *= (-1);
+			std::vector<uint64_t> distances(numCouples);
+			for (c = 0; c < numCouples; c++)
+			{
+				distances.at(c) = saved.at(c) * saved.at(c) - trios[2];
+				if (distances.at(c) < 0)
+					distances.at(c) *= (-1);
 			}
 
 			// check if any two distances is duplicate
-			for (k = 1; k < numCouples; k ++){
-				for (j = 0; j < k; j ++){
-					distance = saved[k]*saved[k] - saved[j]*saved[j];
+			for (k = 1; k < numCouples; k++)
+			{
+				for (j = 0; j < k; j++)
+				{
+					distance = saved.at(k) * saved.at(k) - saved.at(j) * saved.at(j);
 
-					if (distance == distances[k]) detected = true;
-					else if(distance - increment == distances[k]) detected = true;
-					else if(distance + increment == distances[k]) detected = true;
+					if (distance == distances.at(k))
+						detected = true;
+					else if (distance - increment == distances.at(k))
+						detected = true;
+					else if (distance + increment == distances.at(k))
+						detected = true;
 
-					if (distance == distances[j]) detected = true;
-					else if(distance - increment == distances[j]) detected = true;
-					else if(distance + increment == distances[j]) detected = true;
+					if (distance == distances.at(j))
+						detected = true;
+					else if (distance - increment == distances.at(j))
+						detected = true;
+					else if (distance + increment == distances.at(j))
+						detected = true;
 
-					if (detected) {
+					if (detected)
+					{
 						// print detected elements
-						print_info(increment, saved[j], saved[k]);
+						print_info(increment, saved.at(j), saved.at(k));
 						cout << "Triples: ";
-						for (z = 0; z < triples; z ++){
-							cout << trios[z*3] << " ";
-							cout << trios[z*3+1] << " ";
-							cout << trios[z*3+2] << endl;
+						for (z = 0; z < triples; z++)
+						{
+							cout << trios.at(z * 3) << " ";
+							cout << trios.at(z * 3 + 1) << " ";
+							cout << trios.at(z * 3 + 2) << endl;
 						}
-						cout << "Distance: " << distance << endl << endl;
+						cout << "Distance: " << distance << endl
+							 << endl;
 						detected = false;
 					}
 				}
 			}
 		}
-		else{  // if there is more than one triple
+		else
+		{ // if there is more than one triple
 
-			for (j = 1; j < triples;j++){
-				for(c = 0; c< j; c ++){
+			for (j = 1; j < triples; j++)
+			{
+				for (c = 0; c < j; c++)
+				{
 					// measure the distance
-					distance = trios[j*3] - trios[c*3];
+					distance = trios.at(j * 3) - trios.at(c * 3);
 
 					// check below if there is a square number at the same distance
 					square = 1;
-					if (trios[c*3] - distance > 0){
-						for (k = 0; k < 3; k++){
-							while(trios[c*3 + k] - distance > square * square) square ++;
-							if (trios[c*3 + k] - distance == square * square){
+					if (trios.at(c * 3) - distance > 0)
+					{
+						for (k = 0; k < 3; k++)
+						{
+
+							if (distance >= trios.at(c * 3 + k)){
+								continue;
+							}
+
+							square = sqrt(trios.at(c * 3 + k) - distance);
+
+							if (trios.at(c * 3 + k) == (square * square) + distance)
+							{
 								cout << "Increment: " << increment << endl;
 								// print detected elements
-								for (c = 0; c < numCouples; c++){
-									cout << saved[c] << " ";
+								for (c = 0; c < numCouples; c++)
+								{
+									cout << saved.at(c) << " ";
 								}
 								cout << endl;
 								cout << "NEW (below)" << endl;
-								cout << trios[c*3] << trios[j*3];
+								cout << trios.at(c * 3) << trios.at(j * 3);
 							}
 						}
 					}
 
 					// check above if there is a square number at the same distance
-					for (k = 0; k < 3; k++){
-						while(trios[j*3 + k] + distance > square*square) square++;
-						if (trios[j*3 + k] + distance == square * square){
+					for (k = 0; k < 3; k++)
+					{
+						while (trios.at(j * 3 + k) + distance > square * square)
+							square++;
+						if (trios[j * 3 + k] + distance == square * square)
+						{
 							cout << "Increment: " << increment << endl;
 							// print detected elements
-							for (c = 0; c < numCouples; c++){
-								cout << saved[c] << " ";
+							for (c = 0; c < numCouples; c++)
+							{
+								cout << saved.at(c) << " ";
 							}
 							cout << endl;
 							cout << "NEW (above)" << endl;
-							cout << trios[c*3] << trios[j*3] << endl;
+							cout << trios[c * 3] << trios[j * 3] << endl;
 						}
 					}
 				}
@@ -179,11 +297,13 @@ void Elaborate(){
 	}
 }
 
-int main(){
+int main()
+{
 
 	assignment = 1;
 	// numbers ending in 2,3,7,8 can't lead to a group of 3 squares
-	while (assignment < 10e7) {
+	while (assignment < 10e7)
+	{
 
 		thread th1(Elaborate);
 		thread th2(Elaborate);
