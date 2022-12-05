@@ -79,6 +79,7 @@ namespace
 	}
 
 	// -----------------------------------------------------------------------------
+	// print info
 	void print_info(uint64_t increment, uint64_t first, uint64_t second)
 	{
 		cout << "Increment: " << increment << endl;
@@ -91,6 +92,7 @@ namespace
 	}
 
 	// -----------------------------------------------------------------------------
+	// get next increment
 	int get_increment()
 	{
 		int increment;
@@ -109,7 +111,7 @@ void Elaborate()
 
 	int increment = get_increment();
 
-	//std::cout << "Elaborate: " << increment << std::endl;
+	// std::cout << "Elaborate: " << increment << std::endl;
 
 	vector<uint64_t> saved;
 	short j, k, c, z;
@@ -252,7 +254,8 @@ void Elaborate()
 						for (k = 0; k < 3; k++)
 						{
 
-							if (distance >= trios.at(c * 3 + k)){
+							if (distance >= trios.at(c * 3 + k))
+							{
 								continue;
 							}
 
@@ -297,25 +300,49 @@ void Elaborate()
 	}
 }
 
-int main()
+// main, takes an optional argument about the number of threads to use
+int main(int argc, char *argv[])
 {
 
+	// the default number of threads is 8
+	int n_threads = 8;
+
+	if (argc > 1)
+	{
+		n_threads = atoi(argv[1]);
+	}
+	else {
+		// get the number of the threads as number of cores minus one
+		n_threads = thread::hardware_concurrency() - 1;
+
+		// make sure that the number of threads is at least 1
+		if (n_threads < 1)
+			n_threads = 1;
+	}
+
+	// print the number of threads
+	cout << "Number of threads: " << n_threads << endl;
+
 	assignment = 1;
+	
 	// numbers ending in 2,3,7,8 can't lead to a group of 3 squares
 	while (assignment < 10e7)
 	{
+		// initialize a vector that will contain the threads
+		vector<thread> threads;
 
-		thread th1(Elaborate);
-		thread th2(Elaborate);
-		thread th3(Elaborate);
-		thread th4(Elaborate);
-		thread th5(Elaborate);
+		// generate a number of threads equal to n_threads
+		for (int i = 0; i < n_threads; i++)
+		{
+			thread th1(Elaborate);
+			threads.push_back(std::move(th1));
+		}
 
-		th1.join();
-		th2.join();
-		th3.join();
-		th4.join();
-		th5.join();
+		// join all the threads
+		for (int i = 0; i < n_threads; i++)
+		{
+			threads.at(i).join();
+		}
 	}
 
 	return 0;

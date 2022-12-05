@@ -11,6 +11,12 @@ To be composed in a magic square, we compare the distance of the last element of
 - equally spaced - distance of exactly *n*.
 We check then for these conditions and if one is qualified with such condition we print *** to screen near the number.
 
+## Building the program
+You can use the Makefile to easily build the code
+```
+make build 
+```
+
 ## Running the program
 To run the program you should have docker installed, as the programs runs in an image. No other installation is required.
 To run the program more easily also having `make` is preferrable.
@@ -19,12 +25,19 @@ With both of them installed, you can use:
 
 ```
 make docker   # create image
-make          # create executable inside docker container
-make run           # run the executable inside the container
+make build    # create executable inside docker container
+make run      # run the executable inside the container
 ```
 You can also run the following command to open the bash inside the container:
 ```
 make exec
+```
+
+### Options
+The algorithm runs by default in multithreading, you can select the number of threads to use
+by setting THREADS
+```
+make run THREADS="4"
 ```
 
 Otherwise, you can use simply docker in the more traditional way using the Dockerfile provided, or just compile the `squares.cpp` file on your machine and executing it.
