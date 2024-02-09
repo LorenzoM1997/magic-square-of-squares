@@ -11,24 +11,17 @@
 #include <mutex>
 using namespace std;
 
-int assignment;
+int64_t assignment;
 mutex mut;
 
 namespace
 {
-	uint64_t initialize_square_root(const int increment)
+	int64_t initialize_square_root(const int64_t increment)
 	{
-		if (increment % 5 == 1)
-		{
-			return 2;
-		}
-		else
-		{
-			return 1;
-		}
+		return (increment % 5 == 1) ? 2 : 1;
 	}
 
-	void increase_square_root(uint64_t &square_root, const int increment)
+	void increase_square_root(int64_t &square_root, const int64_t increment)
 	{
 		char d = increment % 5;
 		if (d == 0)
@@ -65,7 +58,7 @@ namespace
 	}
 
 	// given a point n, get next valid point greater than n
-	void increase(int &n)
+	void increase(int64_t &n)
 	{
 		// numbers ending in 2,3,7,8 can't lead to a group of 3 squares
 		if (n % 5 == 1)
@@ -80,7 +73,7 @@ namespace
 
 	// -----------------------------------------------------------------------------
 	// print info
-	void print_info(uint64_t increment, uint64_t first, uint64_t second)
+	void print_info(int64_t increment, int64_t first, int64_t second)
 	{
 		cout << "Increment: " << increment << endl;
 		cout << "Couples: ";
@@ -93,14 +86,20 @@ namespace
 
 	// -----------------------------------------------------------------------------
 	// get next increment
-	int get_increment()
+	int64_t get_increment()
 	{
-		int increment;
+		int64_t increment;
 		mut.lock();
 		increase(assignment);
 		increment = assignment;
 		mut.unlock();
 		return increment;
+	}
+
+	bool is_perfect_square(int64_t n)
+	{
+		int64_t root = sqrt(n);
+		return root * root == n;
 	}
 
 }
@@ -109,61 +108,57 @@ namespace
 void Elaborate()
 {
 
-	int increment = get_increment();
+	int64_t increment = get_increment();
 
-	// std::cout << "Elaborate: " << increment << std::endl;
+	// cout << "Elaborate: " << increment << endl;
 
-	vector<uint64_t> saved;
-	short j, k, c, z;
-	uint64_t distance;
+	vector<int64_t> couples;
+	int64_t distance;
 	bool detected = false;
 
-	vector<uint64_t> trios(9);
+	vector<array<int64_t,3>> trios;
 
-	int triples = 0; // number of triples
 	int count = 0;
-	uint64_t start = 1;									 // starting number
-	uint64_t square = initialize_square_root(increment); // starting base
-	uint64_t temp = square;								 // temporary variable
+	int64_t start = 1;									      // starting number
+	int64_t squared_root = initialize_square_root(increment); // starting base
+	int64_t temp = squared_root;							  // temporary variable
 
-	while ((uint64_t)increment > 2 * square + 1)
+	while (increment > 2 * squared_root + 1)
 	{
 		// get square root
-		square = sqrt(start);
+		squared_root = sqrt(start);
 
 		// if start is a perfect square, count it up!
-		if (start == square * square)
+		if (start == squared_root * squared_root)
 		{
 			count++;
 			if (count == 2)
 			{
-				// check if it's already in a triple
-				bool found_in_triple = false;
-				for (auto &&triple : trios)
+				bool found_in_trio = false;
+				for (const auto &trio : trios)
 				{
-					if (start == triple)
+					for (const auto &trio_item : trio)
 					{
-						found_in_triple = true;
+						if (trio_item == start)
+						{
+							found_in_trio = true;
+						}
 					}
 				}
-
-				// if it's not in the trios, then add it to the couple
-				if (!found_in_triple)
+				if (!found_in_trio)
 				{
-					saved.push_back(square);
+					couples.push_back(start);
 				}
 			}
 			else if (count == 3)
 			{
-				trios.at(triples * 3 + 2) = square * square;
-				trios.at(triples * 3 + 1) = trios.at(triples * 3 + 2) - increment;
-				trios.at(triples * 3) = trios.at(triples * 3 + 1) - increment;
-				saved.pop_back();
-				triples++; // add one triple
+				// add the triple
+				trios.push_back({start, start - increment, start - 2 * increment});
+				couples.pop_back();
 			}
 			else if (count > 3)
 			{
-				cout << "Four in a row!" << endl;
+				cout << "Four in a row!" <<  start - 3 * increment << "," << start - 2 * increment << "," << start - increment << "," << start << endl;
 			}
 		}
 		else
@@ -180,30 +175,30 @@ void Elaborate()
 	}
 
 	// Analysis
+	// cout << "Analysis: " << increment << endl;
 
-	int numCouples = (int)saved.size();
-
-	if ((triples == 1 && numCouples >= 2) || (triples >= 2))
+	if ((trios.size() == 1 && couples.size() >= 2) || (trios.size() >= 2))
 	{
 
-		if (triples == 1)
+		if (trios.size() == 1)
 		{
+			const auto &trio = trios.front();
 
 			// compute distance from triples end point
-			std::vector<uint64_t> distances(numCouples);
-			for (c = 0; c < numCouples; c++)
+			std::vector<int64_t> distances(couples.size());
+			for (size_t c = 0; c < couples.size(); c++)
 			{
-				distances.at(c) = saved.at(c) * saved.at(c) - trios[2];
+				distances.at(c) = couples.at(c) * couples.at(c) - trio.at(2);
 				if (distances.at(c) < 0)
 					distances.at(c) *= (-1);
 			}
 
 			// check if any two distances is duplicate
-			for (k = 1; k < numCouples; k++)
+			for (size_t k = 1; k < couples.size(); k++)
 			{
-				for (j = 0; j < k; j++)
+				for (size_t j = 0; j < k; j++)
 				{
-					distance = saved.at(k) * saved.at(k) - saved.at(j) * saved.at(j);
+					distance = couples.at(k) * couples.at(k) - couples.at(j) * couples.at(j);
 
 					if (distance == distances.at(k))
 						detected = true;
@@ -222,14 +217,12 @@ void Elaborate()
 					if (detected)
 					{
 						// print detected elements
-						print_info(increment, saved.at(j), saved.at(k));
+						print_info(increment, couples.at(j), couples.at(k));
 						cout << "Triples: ";
-						for (z = 0; z < triples; z++)
-						{
-							cout << trios.at(z * 3) << " ";
-							cout << trios.at(z * 3 + 1) << " ";
-							cout << trios.at(z * 3 + 2) << endl;
-						}
+						cout << trio.at(0) << " ";
+						cout << trio.at(1) << " ";
+						cout << trio.at(2) << endl;
+						
 						cout << "Distance: " << distance << endl
 							 << endl;
 						detected = false;
@@ -240,58 +233,62 @@ void Elaborate()
 		else
 		{ // if there is more than one triple
 
-			for (j = 1; j < triples; j++)
+			for (size_t j = 1; j < trios.size(); j++)
 			{
-				for (c = 0; c < j; c++)
+				const auto &j_trio = trios.at(j);
+
+				for (size_t c = 0; c < j; c++)
 				{
+
+					const auto &c_trio = trios.at(c);
+
 					// measure the distance
-					distance = trios.at(j * 3) - trios.at(c * 3);
+					distance = j_trio.front() - c_trio.front();
 
 					// check below if there is a square number at the same distance
-					square = 1;
-					if (trios.at(c * 3) - distance > 0)
+					if (c_trio.front() > distance)
 					{
-						for (k = 0; k < 3; k++)
+						for (size_t k = 0; k < 3; k++)
 						{
+							auto possible_square = c_trio.at(k) - distance;
 
-							if (distance >= trios.at(c * 3 + k))
+							if (is_perfect_square(possible_square))
 							{
-								continue;
-							}
-
-							square = sqrt(trios.at(c * 3 + k) - distance);
-
-							if (trios.at(c * 3 + k) == (square * square) + distance)
-							{
-								cout << "Increment: " << increment << endl;
-								// print detected elements
-								for (c = 0; c < numCouples; c++)
-								{
-									cout << saved.at(c) << " ";
-								}
-								cout << endl;
 								cout << "NEW (below)" << endl;
-								cout << trios.at(c * 3) << trios.at(j * 3);
+								cout << "Increment: " << increment << endl;
+
+								std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
+								unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
+
+								// print a 3 x 3 grid containing the squares
+								cout << "Magic square: " << endl;
+								cout << unknown.at(1) << " " << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2" << endl;
+								cout << sqrt(j_trio.at(0)) << "^2 " << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << endl;
+								cout << sqrt(c_trio.at(2)) << "^2 " << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2" << endl;
+								cout << endl;
 							}
 						}
 					}
 
 					// check above if there is a square number at the same distance
-					for (k = 0; k < 3; k++)
+					for (size_t k = 0; k < 3; k++)
 					{
-						while (trios.at(j * 3 + k) + distance > square * square)
-							square++;
-						if (trios[j * 3 + k] + distance == square * square)
+						auto possible_square = j_trio.at(k) + distance;
+
+						if (is_perfect_square(possible_square))
 						{
-							cout << "Increment: " << increment << endl;
-							// print detected elements
-							for (c = 0; c < numCouples; c++)
-							{
-								cout << saved.at(c) << " ";
-							}
-							cout << endl;
 							cout << "NEW (above)" << endl;
-							cout << trios[c * 3] << trios[j * 3] << endl;
+							cout << "Increment used: " << increment << endl;
+
+							std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
+							unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
+
+							// print a 3 x 3 grid containing the squares
+							cout << "Magic square: " << endl;
+							cout << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << " " << sqrt(j_trio.at(0)) << "^2" << endl;
+							cout << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2 " << sqrt(c_trio.at(2)) << "^2" << endl;
+							cout << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2 " << unknown.at(1) << endl;
+							cout << endl;
 						}
 					}
 				}
@@ -313,11 +310,7 @@ int main(int argc, char *argv[])
 	}
 	else {
 		// get the number of the threads as number of cores minus one
-		n_threads = thread::hardware_concurrency() - 1;
-
-		// make sure that the number of threads is at least 1
-		if (n_threads < 1)
-			n_threads = 1;
+		n_threads = std::max(1, static_cast<int>(thread::hardware_concurrency()) - 1);
 	}
 
 	// print the number of threads
