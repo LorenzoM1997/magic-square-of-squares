@@ -10,7 +10,7 @@ build: docker
 	-v ${CURDIR}:/w \
 	-w /w \
 	magic-squares:latest \
-	g++ -Wall -Werror -o squares squares.cpp
+	g++ -Wall -Werror -o squares squares.cpp -I/w
 
 ## docker: build the docker image
 docker:

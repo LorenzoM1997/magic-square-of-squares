@@ -8,11 +8,14 @@
 #include <cmath>
 #include <cstdint>
 #include <thread>
+#include <algorithm>
 #include <mutex>
+#include <MagicSquareDB.h>
 using namespace std;
 
 int64_t assignment;
 mutex mut;
+MagicSquaresDB db;
 
 namespace
 {
@@ -72,19 +75,6 @@ namespace
 	}
 
 	// -----------------------------------------------------------------------------
-	// print info
-	void print_info(int64_t increment, int64_t first, int64_t second)
-	{
-		cout << "Increment: " << increment << endl;
-		cout << "Couples: ";
-
-		cout << "[" << sqrt((first * first) - increment) << "," << first << "]";
-		cout << "[" << sqrt((second * second) - increment) << "," << second << "]";
-		cout << endl;
-		return;
-	}
-
-	// -----------------------------------------------------------------------------
 	// get next increment
 	int64_t get_increment()
 	{
@@ -114,7 +104,6 @@ void Elaborate()
 
 	vector<int64_t> couples;
 	int64_t distance;
-	bool detected = false;
 
 	vector<array<int64_t,3>> trios;
 
@@ -188,17 +177,18 @@ void Elaborate()
 			std::vector<int64_t> distances(couples.size());
 			for (size_t c = 0; c < couples.size(); c++)
 			{
-				distances.at(c) = couples.at(c) * couples.at(c) - trio.at(2);
-				if (distances.at(c) < 0)
-					distances.at(c) *= (-1);
+				distances.at(c) = std::abs(couples.at(c) - trio.front());
 			}
 
 			// check if any two distances is duplicate
 			for (size_t k = 1; k < couples.size(); k++)
 			{
+
 				for (size_t j = 0; j < k; j++)
 				{
-					distance = couples.at(k) * couples.at(k) - couples.at(j) * couples.at(j);
+					distance = couples.at(k) - couples.at(j);
+
+					bool detected = false;
 
 					if (distance == distances.at(k))
 						detected = true;
@@ -217,15 +207,30 @@ void Elaborate()
 					if (detected)
 					{
 						// print detected elements
-						print_info(increment, couples.at(j), couples.at(k));
-						cout << "Triples: ";
-						cout << trio.at(0) << " ";
-						cout << trio.at(1) << " ";
-						cout << trio.at(2) << endl;
+						std::vector<int64_t> items;
+						items.push_back(couples.at(j));
+						items.push_back(couples.at(j) - increment);
+						items.push_back(couples.at(k));
+						items.push_back(couples.at(k) - increment);
+						items.push_back(trio.front());
+						items.push_back(trio.front() - increment);
+						items.push_back(trio.front() - 2 * increment);
+						std::sort(items.begin(), items.end());
+
+						if (db.does_solution_exist(items))
+						{
+							continue;
+						}
+
+						// print the elements
+						cout << "Elements" << endl;
+						for (const auto &item : items)
+						{
+							cout << sqrt(item) << "^2 ";
+						}
+						cout << endl;
 						
-						cout << "Distance: " << distance << endl
-							 << endl;
-						detected = false;
+						cout << "Distance: " << distance << endl << endl;
 					}
 				}
 			}
@@ -252,21 +257,38 @@ void Elaborate()
 						{
 							auto possible_square = c_trio.at(k) - distance;
 
-							if (is_perfect_square(possible_square))
+							if (!is_perfect_square(possible_square))
 							{
-								cout << "NEW (below)" << endl;
-								cout << "Increment: " << increment << endl;
-
-								std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
-								unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
-
-								// print a 3 x 3 grid containing the squares
-								cout << "Magic square: " << endl;
-								cout << unknown.at(1) << " " << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2" << endl;
-								cout << sqrt(j_trio.at(0)) << "^2 " << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << endl;
-								cout << sqrt(c_trio.at(2)) << "^2 " << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2" << endl;
-								cout << endl;
+								continue;
 							}
+
+							MagicSquaresDB::Solution solution;
+							solution.push_back(possible_square);
+							solution.push_back(c_trio.at(0));
+							solution.push_back(c_trio.at(1));
+							solution.push_back(c_trio.at(2));
+							solution.push_back(j_trio.at(0));
+							solution.push_back(j_trio.at(1));
+							solution.push_back(j_trio.at(2));
+
+							if (db.does_solution_exist(solution))
+							{
+								continue;
+							}
+
+							cout << "NEW (below)" << endl;
+							cout << "Increment: " << increment << endl;
+
+							std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
+							unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
+
+							// print a 3 x 3 grid containing the squares
+							cout << "Magic square: " << endl;
+							cout << unknown.at(1) << " " << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2" << endl;
+							cout << sqrt(j_trio.at(0)) << "^2 " << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << endl;
+							cout << sqrt(c_trio.at(2)) << "^2 " << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2" << endl;
+							cout << endl;
+							
 						}
 					}
 
@@ -275,21 +297,37 @@ void Elaborate()
 					{
 						auto possible_square = j_trio.at(k) + distance;
 
-						if (is_perfect_square(possible_square))
+						if (!is_perfect_square(possible_square))
 						{
-							cout << "NEW (above)" << endl;
-							cout << "Increment used: " << increment << endl;
-
-							std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
-							unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
-
-							// print a 3 x 3 grid containing the squares
-							cout << "Magic square: " << endl;
-							cout << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << " " << sqrt(j_trio.at(0)) << "^2" << endl;
-							cout << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2 " << sqrt(c_trio.at(2)) << "^2" << endl;
-							cout << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2 " << unknown.at(1) << endl;
-							cout << endl;
+							continue;
 						}
+
+						MagicSquaresDB::Solution solution;
+						solution.push_back(possible_square);
+						solution.push_back(c_trio.at(0));
+						solution.push_back(c_trio.at(1));
+						solution.push_back(c_trio.at(2));
+						solution.push_back(j_trio.at(0));
+						solution.push_back(j_trio.at(1));
+						solution.push_back(j_trio.at(2));
+
+						if (db.does_solution_exist(solution))
+						{
+							continue;
+						}
+
+						cout << "NEW (above)" << endl;
+						cout << "Increment used: " << increment << endl;
+
+						std::vector<string> unknown = {"  ?  ", "  ?  ", "  ?  "};
+						unknown.at(k) = to_string(static_cast<int>(sqrt(possible_square))) + "^2";
+
+						// print a 3 x 3 grid containing the squares
+						cout << "Magic square: " << endl;
+						cout << sqrt(c_trio.at(1)) << "^2 " << unknown.at(2) << " " << sqrt(j_trio.at(0)) << "^2" << endl;
+						cout << unknown.at(0) << " " << sqrt(j_trio.at(1)) << "^2 " << sqrt(c_trio.at(2)) << "^2" << endl;
+						cout << sqrt(j_trio.at(2)) << "^2 " << sqrt(c_trio.at(0)) << "^2 " << unknown.at(1) << endl;
+						cout << endl;
 					}
 				}
 			}
@@ -307,14 +345,17 @@ int main(int argc, char *argv[])
 	if (argc > 1)
 	{
 		n_threads = atoi(argv[1]);
+
+		// print the number of threads
+		cout << "Selected number of threads: " << n_threads << endl;
 	}
 	else {
 		// get the number of the threads as number of cores minus one
-		n_threads = std::max(1, static_cast<int>(thread::hardware_concurrency()) - 1);
-	}
+		n_threads = std::max(1, static_cast<int>(thread::hardware_concurrency()));
+		n_threads = std::min(n_threads, 8);
 
-	// print the number of threads
-	cout << "Number of threads: " << n_threads << endl;
+		cout << "Using " << n_threads << " threads out of " << thread::hardware_concurrency() << " available." << endl;
+	}
 
 	assignment = 1;
 	
