@@ -16,6 +16,7 @@ using namespace std;
 int64_t assignment;
 mutex mut;
 MagicSquaresDB db;
+const int64_t chunk_size = 5000;
 
 namespace
 {
@@ -80,8 +81,8 @@ namespace
 	{
 		int64_t increment;
 		mut.lock();
-		increase(assignment);
 		increment = assignment;
+		assignment += chunk_size;
 		mut.unlock();
 		return increment;
 	}
@@ -94,73 +95,43 @@ namespace
 
 }
 
-// -----------------------------------------------------------------------------
-void Elaborate()
+void compute(int64_t increment)
 {
-
-	int64_t increment = get_increment();
-
-	// cout << "Elaborate: " << increment << endl;
-
 	vector<int64_t> couples;
 	int64_t distance;
 
 	vector<array<int64_t,3>> trios;
 
-	int count = 0;
 	int64_t start = 1;									      // starting number
 	int64_t squared_root = initialize_square_root(increment); // starting base
-	int64_t temp = squared_root;							  // temporary variable
 
 	while (increment > 2 * squared_root + 1)
 	{
-		// get square root
-		squared_root = sqrt(start);
-
 		// if start is a perfect square, count it up!
-		if (start == squared_root * squared_root)
-		{
-			count++;
-			if (count == 2)
-			{
-				bool found_in_trio = false;
-				for (const auto &trio : trios)
-				{
-					for (const auto &trio_item : trio)
-					{
-						if (trio_item == start)
-						{
-							found_in_trio = true;
-						}
+		int64_t next = start + increment;
+		if (is_perfect_square(next)) {
+			int64_t following = next + increment;
+			if (is_perfect_square(following)) {
+				// add the triple
+				trios.push_back({following, next, start});
+			}
+			else {
+				bool found = false;
+				for (const auto &trio: trios) {
+					if (trio.front() == next) {
+						found = true;
 					}
 				}
-				if (!found_in_trio)
-				{
-					couples.push_back(start);
+
+				if (!found) {
+					couples.push_back(next);
 				}
 			}
-			else if (count == 3)
-			{
-				// add the triple
-				trios.push_back({start, start - increment, start - 2 * increment});
-				couples.pop_back();
-			}
-			else if (count > 3)
-			{
-				cout << "Four in a row!" <<  start - 3 * increment << "," << start - 2 * increment << "," << start - increment << "," << start << endl;
-			}
 		}
-		else
-		{
-			// get new start
-			increase_square_root(temp, increment);
-			start = (temp * temp);
-
-			// reset the counter to 1 (the current square start)
-			count = 1;
-		}
-
-		start += increment;
+		
+		// get new start
+		increase_square_root(squared_root, increment);
+		start = (squared_root * squared_root);
 	}
 
 	// Analysis
@@ -255,7 +226,7 @@ void Elaborate()
 					{
 						for (size_t k = 0; k < 3; k++)
 						{
-							auto possible_square = c_trio.at(k) - distance;
+							int64_t possible_square = c_trio.at(k) - distance;
 
 							if (!is_perfect_square(possible_square))
 							{
@@ -295,7 +266,7 @@ void Elaborate()
 					// check above if there is a square number at the same distance
 					for (size_t k = 0; k < 3; k++)
 					{
-						auto possible_square = j_trio.at(k) + distance;
+						int64_t possible_square = j_trio.at(k) + distance;
 
 						if (!is_perfect_square(possible_square))
 						{
@@ -332,6 +303,19 @@ void Elaborate()
 				}
 			}
 		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+void Elaborate()
+{
+	int64_t increment = get_increment();
+	const int64_t max = increment + chunk_size;
+	while (increment < max)
+	{
+		compute(increment);
+		// get the increment
+		increase(increment);
 	}
 }
 
